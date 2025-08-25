@@ -1,0 +1,854 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SG AWARDS 2025 • Mount Kenya University – Mombasa Campus</title>
+  <meta name="description" content="Single-file voting platform for SG AWARDS 2025 at MKU Mombasa Campus: direct voting on contender cards, nominations, contender registration, editable positions, optional one-time voting tokens, admin manual vote adjustments, and real-time results." />
+
+  <!-- Tailwind via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            mkuBlue: '#0033A1',
+            mkuYellow: '#FFC20E',
+            mkuGray: '#F3F4F6',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Faint horse background */
+    body::before {
+      content: "";
+      position: fixed; inset: 0; z-index: -1;
+      background: url('https://images.unsplash.com/photo-1517849845537-4d257902454a?q=80&w=2069&auto=format&fit=crop') center/cover no-repeat;
+      opacity: .12; filter: grayscale(100%) contrast(110%);
+    }
+    .gradient-header { background: linear-gradient(135deg, #0033A1, #1d4ed8 60%, #3b82f6); }
+    .card { transition: transform .2s ease, box-shadow .2s ease; }
+    .card:hover { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(0,0,0,.08) }
+    .chip { border-radius: 9999px; padding: 0.125rem 0.5rem; font-size: .75rem; }
+    .scrollbar-thin { scrollbar-width: thin; }
+    .scrollbar-thin::-webkit-scrollbar { height: 6px; width: 6px; }
+    .scrollbar-thin::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 9999px; }
+  </style>
+</head>
+<body class="bg-mkuGray min-h-screen text-gray-800">
+  <!-- Header -->
+  <header class="gradient-header text-white">
+    <div class="max-w-6xl mx-auto px-4 py-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div class="flex items-center gap-4">
+        <div class="flex items-center justify-center w-12 h-12 rounded-2xl bg-white/10 ring-1 ring-white/20">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M11.7 2.25a.75.75 0 01.6 0l8.25 3.75a.75.75 0 01.45.69V12a9.75 9.75 0 11-19.5 0V6.69a.75.75 0 01.45-.69L11.7 2.25z"/>
+          </svg>
+        </div>
+        <div>
+          <h1 class="text-2xl md:text-3xl font-bold leading-tight">SG AWARDS 2025</h1>
+          <p class="text-white/80 text-sm">Mount Kenya University – Mombasa Campus</p>
+          <p class="text-white/90 text-xs italic">Committed to empower through celebrating achievements</p>
+        </div>
+      </div>
+      <div class="text-right">
+        <div class="text-xs">Prizes: Certificates • Gift Hampers • Cash Awards</div>
+        <div class="mt-1 text-[11px] opacity-90">Brought to you by <span class="font-semibold">MANGALE MWAHANJE MASOUD</span> – SECRETARY GENERAL, MKU MOMBASA Campus</div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main container -->
+  <main class="max-w-6xl mx-auto px-4 py-8">
+    <!-- Tabs -->
+    <div class="flex flex-wrap gap-2 mb-6">
+      <button data-tab="vote" class="tab-btn px-4 py-2 rounded-2xl bg-white text-mkuBlue font-semibold shadow">Vote</button>
+      <button data-tab="results" class="tab-btn px-4 py-2 rounded-2xl bg-white/60 hover:bg-white shadow">Live Results</button>
+      <button data-tab="nominate" class="tab-btn px-4 py-2 rounded-2xl bg-white/60 hover:bg-white shadow">Nominate</button>
+      <button data-tab="register" class="tab-btn px-4 py-2 rounded-2xl bg-white/60 hover:bg-white shadow">Register Contender</button>
+      <button data-tab="admin" class="tab-btn px-4 py-2 rounded-2xl bg-white/60 hover:bg-white shadow">Admin</button>
+      <span class="ml-auto text-xs text-gray-600">Data saved in this browser • Token mode optional</span>
+    </div>
+
+    <!-- Vote TAB: Direct card voting with inline live results -->
+    <section id="tab-vote" class="tab card bg-white rounded-2xl p-6 shadow">
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+        <div>
+          <h2 class="text-xl font-bold text-mkuBlue">Vote Now</h2>
+          <p class="text-sm text-gray-600">Click <span class="font-semibold">Vote</span> on your preferred contender for each position. One vote per position.</p>
+        </div>
+        <div class="text-right text-xs">
+          <div><span class="font-semibold">Token mode:</span> <span id="tokenModeState">Off</span></div>
+          <div><span class="font-semibold">Your token:</span> <code id="currentToken">—</code> <span id="tokenBadge" class="chip bg-white/10 text-gray-700 border border-gray-200"></span></div>
+        </div>
+      </div>
+      <div id="voteAccess" class="mt-3"></div>
+      <div id="voteCards" class="mt-5 grid md:grid-cols-2 gap-6"></div>
+    </section>
+
+    <!-- Results TAB (summary) -->
+    <section id="tab-results" class="tab hidden card bg-white rounded-2xl p-6 shadow">
+      <div class="flex items-center justify-between">
+        <h2 class="text-xl font-bold text-mkuBlue">Live Results</h2>
+        <button id="refreshResults" class="px-3 py-1.5 text-sm rounded-xl bg-gray-100 hover:bg-gray-200">Refresh</button>
+      </div>
+      <div id="resultsContainer" class="mt-4 space-y-6"></div>
+    </section>
+
+    <!-- Nominate TAB -->
+    <section id="tab-nominate" class="tab hidden card bg-white rounded-2xl p-6 shadow">
+      <h2 class="text-xl font-bold text-mkuBlue">Nominate a Student</h2>
+      <p class="text-sm text-gray-600">Suggest a candidate for any position. Admins will review nominations.</p>
+      <form id="nominationForm" class="mt-4 grid md:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium">Your Name</label>
+          <input required id="nomYourName" type="text" class="mt-1 w-full rounded-xl border-gray-300 focus:ring-mkuBlue focus:border-mkuBlue" placeholder="e.g., Jane Doe" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium">Your Email</label>
+          <input required id="nomYourEmail" type="email" class="mt-1 w-full rounded-xl border-gray-300 focus:ring-mkuBlue focus:border-mkuBlue" placeholder="you@students.mku.ac.ke" />
+        </div>
+        <div class="md:col-span-2">
+          <label class="block text-sm font-medium">Select Position</label>
+          <select id="nomPosition" class="mt-1 w-full rounded-xl border-gray-300 focus:ring-mkuBlue focus:border-mkuBlue"></select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium">Nominee Full Name</label>
+          <input required id="nomineeName" type="text" class="mt-1 w-full rounded-xl border-gray-300 focus:ring-mkuBlue focus:border-mkuBlue" placeholder="e.g., John Mworia" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium">Nominee Program/Year</label>
+          <input id="nomineeInfo" type="text" class="mt-1 w-full rounded-xl border-gray-300 focus:ring-mkuBlue focus:border-mkuBlue" placeholder="e.g., BBA, Year 3" />
+        </div>
+        <div class="md:col-span-2">
+          <label class="block text-sm font-medium">Why are you nominating them?</label>
+          <textarea id="nomReason" rows="3" class="mt-1 w-full rounded-xl border-gray-300 focus:ring-mkuBlue focus:border-mkuBlue" placeholder="Brief justification"></textarea>
+        </div>
+        <div class="md:col-span-2 flex items-center justify-end gap-2">
+          <button type="reset" class="px-3 py-2 bg-gray-100 rounded-xl">Reset</button>
+          <button type="submit" class="px-4 py-2 bg-mkuBlue text-white rounded-xl font-semibold">Submit Nomination</button>
+        </div>
+      </form>
+      <div class="mt-6">
+        <h3 class="font-semibold text-mkuBlue">Recent Nominations</h3>
+        <div id="nominationsList" class="mt-2 divide-y"></div>
+      </div>
+    </section>
+
+    <!-- Register Contender TAB -->
+    <section id="tab-register" class="tab hidden card bg-white rounded-2xl p-6 shadow">
+      <h2 class="text-xl font-bold text-mkuBlue">Register as a Contender</h2>
+      <p class="text-sm text-gray-600">Submit your details to appear on the ballot. Admin approval may be required.</p>
+      <form id="registerForm" class="mt-4 grid md:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium">Full Name</label>
+          <input required id="regName" type="text" class="mt-1 w-full rounded-xl border-gray-300 focus:ring-mkuBlue focus:border-mkuBlue" placeholder="Your full name" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium">Email</label>
+          <input required id="regEmail" type="email" class="mt-1 w-full rounded-xl border-gray-300 focus:ring-mkuBlue focus:border-mkuBlue" placeholder="you@students.mku.ac.ke" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium">Program/Year</label>
+          <input id="regInfo" type="text" class="mt-1 w-full rounded-xl border-gray-300 focus:ring-mkuBlue focus:border-mkuBlue" placeholder="e.g., BSc IT, Year 2" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium">Position</label>
+          <select id="regPosition" class="mt-1 w-full rounded-xl border-gray-300 focus:ring-mkuBlue focus:border-mkuBlue"></select>
+        </div>
+        <div class="md:col-span-2">
+          <label class="block text-sm font-medium">Short Bio / Manifesto</label>
+          <textarea id="regBio" rows="3" class="mt-1 w-full rounded-xl border-gray-300 focus:ring-mkuBlue focus:border-mkuBlue" placeholder="Tell voters why they should pick you"></textarea>
+        </div>
+        <div class="md:col-span-2 flex items-center justify-end gap-2">
+          <button type="reset" class="px-3 py-2 bg-gray-100 rounded-xl">Reset</button>
+          <button type="submit" class="px-4 py-2 bg-mkuBlue text-white rounded-xl font-semibold">Submit Registration</button>
+        </div>
+      </form>
+      <div class="mt-6">
+        <h3 class="font-semibold text-mkuBlue">Registered Contenders</h3>
+        <div id="contendersList" class="mt-2 divide-y"></div>
+      </div>
+    </section>
+
+    <!-- Admin TAB -->
+    <section id="tab-admin" class="tab hidden card bg-white rounded-2xl p-6 shadow">
+      <div class="flex items-center justify-between">
+        <h2 class="text-xl font-bold text-mkuBlue">Admin & Setup</h2>
+        <div>
+          <label class="text-xs text-gray-500">Passcode</label>
+          <input id="adminPass" type="password" class="ml-2 rounded-lg border-gray-300 px-2 py-1 text-sm" placeholder="Enter passcode" />
+          <button id="adminUnlock" class="ml-2 px-3 py-1.5 text-sm rounded-xl bg-mkuBlue text-white">Unlock</button>
+        </div>
+      </div>
+
+      <div id="adminPanel" class="mt-4 hidden">
+        <div class="grid md:grid-cols-2 gap-6">
+          <!-- Settings -->
+          <div class="p-4 rounded-2xl bg-gray-50 border">
+            <h3 class="font-semibold text-mkuBlue">Voting Settings</h3>
+            <div class="mt-2 space-y-2 text-sm">
+              <label class="flex items-center gap-2">
+                <input id="toggleTokenMode" type="checkbox" class="accent-mkuBlue" />
+                <span>Require unique voting token to vote</span>
+              </label>
+              <p class="text-xs text-gray-600">When ON, voters must access the page using a valid <code>?token=...</code> link. Tokens are marked used per position after each vote.</p>
+            </div>
+          </div>
+
+          <!-- Positions Manager -->
+          <div class="p-4 rounded-2xl bg-gray-50 border">
+            <h3 class="font-semibold text-mkuBlue">Positions (Editable)</h3>
+            <form id="addPositionForm" class="mt-3 flex gap-2">
+              <input id="positionName" type="text" class="flex-1 rounded-xl border-gray-300" placeholder="e.g., Most Popular Student" />
+              <button class="px-3 py-2 rounded-xl bg-mkuBlue text-white">Add</button>
+            </form>
+            <div id="positionsList" class="mt-3 space-y-2"></div>
+          </div>
+
+          <!-- Voting Links -->
+          <div class="p-4 rounded-2xl bg-gray-50 border">
+            <h3 class="font-semibold text-mkuBlue">Generate Voting Links (One‑time tokens)</h3>
+            <form id="genLinksForm" class="mt-3 grid grid-cols-2 gap-2">
+              <input id="linksCount" type="number" min="1" value="5" class="rounded-xl border-gray-300" />
+              <input id="batchLabel" type="text" class="rounded-xl border-gray-300" placeholder="Batch label (optional)" />
+              <button class="col-span-2 px-3 py-2 rounded-xl bg-mkuBlue text-white">Generate</button>
+            </form>
+            <div class="mt-3 overflow-auto scrollbar-thin">
+              <table class="min-w-full text-sm">
+                <thead>
+                  <tr class="text-left text-gray-500">
+                    <th class="py-2 pr-4">Token</th>
+                    <th class="py-2 pr-4">Link</th>
+                    <th class="py-2 pr-4">Batch</th>
+                    <th class="py-2 pr-4">Used?</th>
+                    <th class="py-2">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="linksTable"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Data Tools -->
+          <div class="p-4 rounded-2xl bg-gray-50 border md:col-span-2">
+            <h3 class="font-semibold text-mkuBlue">Data Tools</h3>
+            <div class="flex flex-wrap items-center gap-2 mt-2">
+              <button id="exportData" class="px-3 py-2 rounded-xl bg-gray-800 text-white">Export JSON</button>
+              <label class="px-3 py-2 rounded-xl bg-gray-100 cursor-pointer">
+                Import JSON <input id="importJSON" type="file" accept="application/json" class="hidden" />
+              </label>
+              <button id="resetAll" class="px-3 py-2 rounded-xl bg-red-600 text-white" title="Clears all app data from this browser">Reset (Danger)</button>
+              <span class="text-xs text-gray-500">Note: data is stored locally in this browser via localStorage.</span>
+            </div>
+          </div>
+
+          <!-- Manual Vote Adjustments -->
+          <div class="p-4 rounded-2xl bg-gray-50 border md:col-span-2">
+            <h3 class="font-semibold text-mkuBlue">Manual Vote Adjustments</h3>
+            <p class="text-xs text-gray-600">Use this to add/remove offline votes. Changes update live results instantly.</p>
+            <div id="manualVotes" class="mt-3 space-y-4"></div>
+          </div>
+
+          <!-- Nominations Review -->
+          <div class="p-4 rounded-2xl bg-gray-50 border md:col-span-2">
+            <h3 class="font-semibold text-mkuBlue">Nominations Review</h3>
+            <div id="adminNoms" class="mt-2 divide-y"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="mt-10 text-center text-xs text-gray-600">
+      © 2025 SG AWARDS • MKU Mombasa Campus • Direct-vote single‑file app
+    </footer>
+  </main>
+
+  <script>
+    /*********************
+     * Storage & Defaults *
+     *********************/
+    const APP_KEY = 'SGA25_APP_V2_MERGED';
+    const DEFAULT_PASS = 'SG2025admin';
+
+    const DEFAULT_DATA = {
+      meta: { campus: 'Mount Kenya University – Mombasa Campus', event: 'SG AWARDS 2025', createdAt: new Date().toISOString() },
+      passcode: DEFAULT_PASS,
+      settings: { requireToken: false },
+      positions: [
+        { id: id(), name: 'Most Popular Student' },
+        { id: id(), name: 'Best Leadership' },
+        { id: id(), name: 'Academic Excellence' },
+        { id: id(), name: 'Sports Personality' },
+      ],
+      votes: {}, // votes[positionId][contenderId] = number
+      nominations: [],
+      contenders: [], // {id, positionId, fullName, info, bio}
+      links: [] // {token, used, usedAt, usedPositions:{[posId]: true}, batch}
+    };
+
+    function id() { return Math.random().toString(36).slice(2, 10); }
+    function deepClone(o){ return JSON.parse(JSON.stringify(o)); }
+
+    function load() {
+      const raw = localStorage.getItem(APP_KEY);
+      if (!raw) return deepClone(DEFAULT_DATA);
+      try { return JSON.parse(raw); } catch { return deepClone(DEFAULT_DATA); }
+    }
+    function save() { localStorage.setItem(APP_KEY, JSON.stringify(DB)); }
+
+    let DB = load();
+
+    /*********************
+     * URL Helpers        *
+     *********************/
+    function getBaseURL() { return window.location.origin + window.location.pathname; }
+    function tokenFromURL() { const u = new URL(window.location.href); return u.searchParams.get('token'); }
+
+    /*********************
+     * Tabs               *
+     *********************/
+    const tabs = document.querySelectorAll('.tab');
+    const tabBtns = document.querySelectorAll('.tab-btn');
+    function showTab(name) {
+      tabs.forEach(t => t.classList.add('hidden'));
+      document.getElementById(`tab-${name}`).classList.remove('hidden');
+      tabBtns.forEach(b => b.classList.remove('bg-white', 'text-mkuBlue'));
+      tabBtns.forEach(b => b.classList.add('bg-white/60'));
+      document.querySelector(`[data-tab="${name}"]`).classList.add('bg-white','text-mkuBlue');
+    }
+    tabBtns.forEach(btn => btn.addEventListener('click', () => showTab(btn.dataset.tab)));
+
+    /*********************
+     * Admin Gate         *
+     *********************/
+    const adminUnlock = document.getElementById('adminUnlock');
+    const adminPass = document.getElementById('adminPass');
+    const adminPanel = document.getElementById('adminPanel');
+    adminUnlock.addEventListener('click', () => {
+      if ((adminPass.value || '').trim() === (DB.passcode || DEFAULT_PASS)) {
+        adminPanel.classList.remove('hidden');
+        toast('Admin unlocked');
+        renderAdmin();
+      } else { toast('Wrong passcode', true); }
+    });
+
+    /*********************
+     * Positions Manager  *
+     *********************/
+    const positionsList = document.getElementById('positionsList');
+    const addPositionForm = document.getElementById('addPositionForm');
+    const positionName = document.getElementById('positionName');
+
+    function renderPositionsManager() {
+      positionsList.innerHTML = '';
+      DB.positions.forEach((p, idx) => {
+        const wrap = document.createElement('div');
+        wrap.className = 'flex items-center justify-between gap-2 p-2 rounded-xl bg-white';
+        wrap.innerHTML = `
+          <div class="flex items-center gap-2">
+            <span class="chip bg-gray-100">${idx+1}</span>
+            <input data-id="${p.id}" value="${escapeHTML(p.name)}" class="pos-input rounded-lg border px-2 py-1"/>
+          </div>
+          <div class="text-sm flex items-center gap-2">
+            <button data-act="addCont" data-id="${p.id}" class="px-2 py-1 rounded-lg bg-mkuBlue text-white">Add Contender</button>
+            <button data-act="del" data-id="${p.id}" class="px-2 py-1 rounded-lg bg-red-600 text-white">Delete</button>
+          </div>`;
+        positionsList.appendChild(wrap);
+      });
+
+      positionsList.querySelectorAll('.pos-input').forEach(inp => {
+        inp.addEventListener('change', (e) => {
+          const idd = e.target.dataset.id;
+          const p = DB.positions.find(x => x.id === idd);
+          if (p) { p.name = e.target.value.trim() || p.name; save(); renderAll(); toast('Position updated'); }
+        })
+      });
+      positionsList.querySelectorAll('button').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const idd = btn.dataset.id; const act = btn.dataset.act;
+          if (act === 'del') {
+            if (!confirm('Delete this position and its contenders?')) return;
+            DB.positions = DB.positions.filter(x => x.id !== idd);
+            delete DB.votes[idd];
+            DB.contenders = DB.contenders.filter(c => c.positionId !== idd);
+            save(); renderAll();
+          }
+          if (act === 'addCont') {
+            const name = prompt('Contender full name'); if (!name) return;
+            const info = prompt('Program/Year (optional)') || '';
+            addContender(idd, name, info, '');
+          }
+        })
+      })
+    }
+
+    addPositionForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const name = positionName.value.trim(); if (!name) return;
+      DB.positions.push({ id: id(), name }); save(); positionName.value=''; renderAll(); toast('Position added');
+    });
+
+    function addContender(positionId, fullName, info, bio) {
+      const contender = { id: id(), positionId, fullName, info, bio };
+      DB.contenders.push(contender);
+      DB.votes[positionId] = DB.votes[positionId] || {};
+      DB.votes[positionId][contender.id] = DB.votes[positionId][contender.id] || 0;
+      save(); renderAll(); toast('Contender added');
+    }
+
+    /*********************
+     * Token Links        *
+     *********************/
+    const genLinksForm = document.getElementById('genLinksForm');
+    const linksTable = document.getElementById('linksTable');
+
+    genLinksForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const count = Math.max(1, parseInt(document.getElementById('linksCount').value || '1', 10));
+      const batch = (document.getElementById('batchLabel').value || '').trim();
+      for (let i=0;i<count;i++) {
+        DB.links.push({ token: id()+id(), used: false, usedAt: null, usedPositions: {}, batch });
+      }
+      save(); renderLinks(); toast(`${count} voting link(s) created`);
+    });
+
+    function renderLinks() {
+      linksTable.innerHTML = '';
+      const base = getBaseURL();
+      DB.links.forEach((l, i) => {
+        const url = `${base}?token=${l.token}`;
+        const tr = document.createElement('tr');
+        tr.className = 'border-t';
+        tr.innerHTML = `
+          <td class="py-2 pr-4 font-mono text-xs">${l.token.slice(0,10)}…</td>
+          <td class="py-2 pr-4 max-w-[250px]">
+            <input value="${url}" class="w-full text-xs bg-gray-50 border rounded-lg px-2 py-1" readonly />
+          </td>
+          <td class="py-2 pr-4 text-xs text-gray-600">${l.batch||''}</td>
+          <td class="py-2 pr-4 text-xs ${l.used? 'text-green-700' : 'text-gray-500'}">${l.used? 'Yes' : 'No'}</td>
+          <td class="py-2 text-xs">
+            <button data-i="${i}" data-act="copy" class="px-2 py-1 bg-gray-800 text-white rounded">Copy</button>
+            <button data-i="${i}" data-act="revoke" class="ml-1 px-2 py-1 bg-red-600 text-white rounded">Revoke</button>
+          </td>`;
+        linksTable.appendChild(tr);
+      });
+
+      linksTable.querySelectorAll('button').forEach(b => b.addEventListener('click', async () => {
+        const i = +b.dataset.i; const act = b.dataset.act; const base = getBaseURL();
+        const url = `${base}?token=${DB.links[i].token}`;
+        if (act === 'copy') { await navigator.clipboard.writeText(url); toast('Link copied'); }
+        if (act === 'revoke') { if (!confirm('Revoke this token?')) return; DB.links.splice(i,1); save(); renderLinks(); }
+      }));
+    }
+
+    /*********************
+     * Direct Voting UI   *
+     *********************/
+    const voteCards = document.getElementById('voteCards');
+    const voteAccess = document.getElementById('voteAccess');
+    const tokenBadge = document.getElementById('tokenBadge');
+    const tokenModeState = document.getElementById('tokenModeState');
+    const currentTokenEl = document.getElementById('currentToken');
+
+    const localVotesKey = 'SGA25_LOCAL_VOTES_PER_POSITION'; // {posId: contenderId}
+
+    function getLocalVotes(){ try { return JSON.parse(localStorage.getItem(localVotesKey)) || {}; } catch { return {}; } }
+    function setLocalVotes(obj){ localStorage.setItem(localVotesKey, JSON.stringify(obj)); }
+
+    function canVoteInPosition(posId){
+      if (DB.settings.requireToken){
+        const t = tokenFromURL(); if (!t) return {ok:false, reason:'Token required'};
+        const link = DB.links.find(l => l.token === t); if (!link) return {ok:false, reason:'Invalid token'};
+        if (link.usedPositions && link.usedPositions[posId]) return {ok:false, reason:'You already used this token for this position'};
+        return {ok:true, link};
+      } else {
+        const lv = getLocalVotes(); if (lv[posId]) return {ok:false, reason:'You already voted in this position on this device'};
+        return {ok:true};
+      }
+    }
+
+    function castVote(posId, contenderId){
+      const check = canVoteInPosition(posId);
+      if (!check.ok){ toast(check.reason, true); return; }
+
+      DB.votes[posId] = DB.votes[posId] || {}; DB.votes[posId][contenderId] = (DB.votes[posId][contenderId] || 0) + 1;
+
+      if (DB.settings.requireToken){
+        const t = tokenFromURL(); const link = DB.links.find(l => l.token === t);
+        if (link){ link.used = true; link.usedAt = new Date().toISOString(); link.usedPositions = link.usedPositions || {}; link.usedPositions[posId] = true; }
+      } else {
+        const lv = getLocalVotes(); lv[posId] = contenderId; setLocalVotes(lv);
+      }
+
+      save();
+      renderVoteCards();
+      renderResults();
+    }
+
+    function renderVoteCards(){
+      tokenModeState.textContent = DB.settings.requireToken ? 'On' : 'Off';
+      const token = tokenFromURL();
+      currentTokenEl.textContent = token ? token.slice(0,10)+'…' : '—';
+
+      // Access ribbon
+      if (DB.settings.requireToken){
+        const link = DB.links.find(l => l.token === token);
+        if (!token) { voteAccess.innerHTML = note('No voting token detected. Please open your unique voting link.', 'yellow'); }
+        else if (!link) { voteAccess.innerHTML = note('Invalid token. Request a valid link from the committee.', 'red'); }
+        else { voteAccess.innerHTML = note('Valid token ✓ You may vote once per position.','blue'); }
+        tokenBadge.textContent = link ? (link.used ? 'Link used (some positions)' : 'Link active') : 'No token';
+      } else {
+        voteAccess.innerHTML = note('Token not required. This device can vote once per position.','gray');
+        tokenBadge.textContent = '—';
+      }
+
+      // Build cards
+      voteCards.innerHTML = '';
+      DB.positions.forEach(pos => {
+        const contenders = DB.contenders.filter(c => c.positionId === pos.id);
+        const total = totalVotes(pos.id);
+        const lv = getLocalVotes();
+        const token = tokenFromURL();
+        const link = DB.links.find(l => l.token === token);
+
+        const card = document.createElement('div');
+        card.className = 'p-4 rounded-2xl border bg-gray-50';
+        card.innerHTML = `<div class="flex items-center justify-between">
+            <h4 class="font-semibold text-mkuBlue">${escapeHTML(pos.name)}</h4>
+            <span class="text-xs text-gray-500">${total} total vote(s)</span>
+          </div>`;
+
+        const list = document.createElement('div'); list.className = 'mt-3 space-y-3';
+        if (contenders.length === 0){ list.innerHTML = '<div class="text-sm text-gray-500">No contenders yet.</div>'; }
+        else {
+          contenders.forEach(c => {
+            const votes = (DB.votes[pos.id] && DB.votes[pos.id][c.id]) || 0;
+            const pct = total ? Math.round((votes/total)*100) : 0;
+
+            const row = document.createElement('div');
+            row.className = 'bg-white p-3 rounded-xl border';
+            row.innerHTML = `
+              <div class="flex items-center justify-between">
+                <div>
+                  <div class="font-medium">${escapeHTML(c.fullName)}</div>
+                  <div class="text-xs text-gray-500">${escapeHTML(c.info||'')}</div>
+                </div>
+                <div class="flex items-center gap-2">
+                  <button class="voteBtn px-3 py-1.5 rounded-lg bg-mkuBlue text-white text-sm">Vote</button>
+                  <div class="text-xs text-gray-600 w-20 text-right">${votes} • ${pct}%</div>
+                </div>
+              </div>
+              <div class="w-full bg-gray-200 rounded-full h-2 mt-2">
+                <div class="bg-mkuBlue h-2 rounded-full" style="width:${pct}%"></div>
+              </div>`;
+
+            const disqualified = DB.settings.requireToken
+              ? (!token || !link || (link.usedPositions && link.usedPositions[pos.id]))
+              : !!lv[pos.id];
+
+            const btn = row.querySelector('.voteBtn');
+            if (disqualified){ btn.disabled = true; btn.classList.remove('bg-mkuBlue'); btn.classList.add('bg-gray-400','cursor-not-allowed'); }
+            btn.addEventListener('click', () => castVote(pos.id, c.id));
+
+            list.appendChild(row);
+          });
+        }
+        card.appendChild(list);
+        voteCards.appendChild(card);
+      });
+    }
+
+    /*********************
+     * Results (summary)  *
+     *********************/
+    const resultsContainer = document.getElementById('resultsContainer');
+    document.getElementById('refreshResults').addEventListener('click', renderResults);
+
+    function renderResults(){
+      resultsContainer.innerHTML = '';
+      DB.positions.forEach(pos => {
+        const block = document.createElement('div');
+        block.innerHTML = `<div class="flex items-center justify-between">
+            <h4 class="font-semibold text-mkuBlue">${escapeHTML(pos.name)}</h4>
+            <span class="text-xs text-gray-500">${totalVotes(pos.id)} total vote(s)</span>
+          </div>`;
+
+        const contenders = DB.contenders.filter(c => c.positionId === pos.id);
+        const total = totalVotes(pos.id) || 0;
+        if (contenders.length === 0) block.innerHTML += '<div class="text-sm text-gray-500 mt-1">No contenders.</div>';
+        else {
+          contenders.forEach(c => {
+            const votes = (DB.votes[pos.id] && DB.votes[pos.id][c.id]) || 0;
+            const pct = total ? Math.round((votes/total)*100) : 0;
+            const row = document.createElement('div');
+            row.className = 'mt-2';
+            row.innerHTML = `
+              <div class="flex items-center justify-between text-sm">
+                <div class="font-medium">${escapeHTML(c.fullName)} <span class="text-xs text-gray-500">${escapeHTML(c.info||'')}</span></div>
+                <div class="text-xs text-gray-600">${votes} • ${pct}%</div>
+              </div>
+              <div class="w-full bg-gray-200 rounded-full h-2 mt-1">
+                <div class="bg-mkuBlue h-2 rounded-full" style="width:${pct}%"></div>
+              </div>`;
+            block.appendChild(row);
+          });
+        }
+        resultsContainer.appendChild(block);
+      });
+    }
+
+    function totalVotes(posId){ const rec = DB.votes[posId] || {}; return Object.values(rec).reduce((a,b)=>a+(b||0),0); }
+
+    /*********************
+     * Nominations        *
+     *********************/
+    const nomForm = document.getElementById('nominationForm');
+    const nomPosition = document.getElementById('nomPosition');
+    const nominationsList = document.getElementById('nominationsList');
+    const adminNoms = document.getElementById('adminNoms');
+
+    nomForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const record = {
+        id: id(),
+        by: document.getElementById('nomYourName').value.trim(),
+        email: document.getElementById('nomYourEmail').value.trim(),
+        positionId: nomPosition.value,
+        nomineeName: document.getElementById('nomineeName').value.trim(),
+        nomineeInfo: document.getElementById('nomineeInfo').value.trim(),
+        reason: document.getElementById('nomReason').value.trim(),
+        at: new Date().toISOString(),
+        status: 'Pending'
+      };
+      DB.nominations.unshift(record); save(); nomForm.reset(); renderNoms(); toast('Nomination submitted');
+    });
+
+    function renderNoms(){
+      nominationsList.innerHTML = '';
+      DB.nominations.slice(0,10).forEach(n => {
+        const row = document.createElement('div'); row.className = 'py-2 text-sm flex items-start justify-between gap-4';
+        const pos = DB.positions.find(p => p.id === n.positionId);
+        row.innerHTML = `
+          <div>
+            <div class="font-medium">${escapeHTML(n.nomineeName)} <span class="text-xs text-gray-500">${escapeHTML(n.nomineeInfo||'')}</span></div>
+            <div class="text-xs text-gray-500">for ${escapeHTML(pos?pos.name:'[deleted]')}</div>
+            <div class="text-xs text-gray-600 mt-1">“${escapeHTML(n.reason||'') }”</div>
+          </div>
+          <div class="text-xs text-gray-500">${new Date(n.at).toLocaleString()}</div>`;
+        nominationsList.appendChild(row);
+      });
+
+      if (!adminPanel.classList.contains('hidden')){
+        adminNoms.innerHTML = '';
+        DB.nominations.forEach((n, i) => {
+          const pos = DB.positions.find(p => p.id === n.positionId);
+          const row = document.createElement('div'); row.className = 'py-2 text-sm flex items-start justify-between gap-4';
+          row.innerHTML = `
+            <div>
+              <div class="font-semibold">${escapeHTML(n.nomineeName)}</div>
+              <div class="text-xs text-gray-500">for ${escapeHTML(pos?pos.name:'[deleted]')} • By ${escapeHTML(n.by)} (${escapeHTML(n.email)})</div>
+              <div class="text-xs text-gray-600 mt-1">${escapeHTML(n.reason||'')}</div>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="chip ${n.status==='Approved'?'bg-green-100 text-green-800':n.status==='Rejected'?'bg-red-100 text-red-800':'bg-gray-100'}">${n.status}</span>
+              <button data-i="${i}" data-act="approve" class="px-2 py-1 rounded bg-green-600 text-white">Approve</button>
+              <button data-i="${i}" data-act="reject" class="px-2 py-1 rounded bg-red-600 text-white">Reject</button>
+              <button data-i="${i}" data-act="add" class="px-2 py-1 rounded bg-mkuBlue text-white">Add as Contender</button>
+              <button data-i="${i}" data-act="del" class="px-2 py-1 rounded bg-gray-300">Delete</button>
+            </div>`;
+          adminNoms.appendChild(row);
+        });
+
+        adminNoms.querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
+          const i = +b.dataset.i; const act = b.dataset.act; const rec = DB.nominations[i]; if (!rec) return;
+          if (act==='approve') rec.status='Approved';
+          if (act==='reject') rec.status='Rejected';
+          if (act==='del') DB.nominations.splice(i,1);
+          if (act==='add') { if (confirm(`Add ${rec.nomineeName} as contender for this position?`)) addContender(rec.positionId, rec.nomineeName, rec.nomineeInfo||'', rec.reason||''); rec.status='Approved'; }
+          save(); renderNoms(); renderAll();
+        }));
+      }
+    }
+
+    /*********************
+     * Registration       *
+     *********************/
+    const regPosition = document.getElementById('regPosition');
+    const regForm = document.getElementById('registerForm');
+    const contendersList = document.getElementById('contendersList');
+
+    regForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const rec = {
+        id: id(), positionId: regPosition.value,
+        fullName: document.getElementById('regName').value.trim(),
+        email: document.getElementById('regEmail').value.trim(),
+        info: document.getElementById('regInfo').value.trim(),
+        bio: document.getElementById('regBio').value.trim(),
+        at: new Date().toISOString(),
+      };
+      DB.contenders.push({ id: rec.id, positionId: rec.positionId, fullName: rec.fullName, info: rec.info, bio: rec.bio });
+      DB.votes[rec.positionId] = DB.votes[rec.positionId] || {}; DB.votes[rec.positionId][rec.id] = DB.votes[rec.positionId][rec.id] || 0;
+      save(); regForm.reset(); renderContenders(); renderResults(); renderVoteCards(); toast('Registration submitted');
+    });
+
+    function renderContenders(){
+      contendersList.innerHTML = '';
+      DB.positions.forEach(pos => {
+        const list = DB.contenders.filter(c => c.positionId === pos.id);
+        if (list.length === 0) return;
+        const section = document.createElement('div'); section.className = 'py-2';
+        section.innerHTML = `<div class="font-semibold text-mkuBlue">${escapeHTML(pos.name)}</div>`;
+        list.forEach(c => {
+          const row = document.createElement('div'); row.className = 'py-2 text-sm flex items-start justify-between gap-4';
+          row.innerHTML = `
+            <div>
+              <div class="font-medium">${escapeHTML(c.fullName)}</div>
+              <div class="text-xs text-gray-500">${escapeHTML(c.info||'')}</div>
+              <div class="text-xs text-gray-600">${escapeHTML(c.bio||'')}</div>
+            </div>
+            <button data-id="${c.id}" class="remCont px-2 py-1 rounded bg-red-600 text-white">Remove</button>`;
+          section.appendChild(row);
+        });
+        contendersList.appendChild(section);
+      });
+
+      contendersList.querySelectorAll('.remCont').forEach(btn => btn.addEventListener('click', () => {
+        const cid = btn.dataset.id; if (!confirm('Remove this contender?')) return;
+        const c = DB.contenders.find(x => x.id === cid);
+        if (c) { delete DB.votes[c.positionId]?.[cid]; DB.contenders = DB.contenders.filter(x => x.id !== cid); save(); renderContenders(); renderResults(); renderVoteCards(); }
+      }));
+    }
+
+    /*********************
+     * Manual Votes Pane  *
+     *********************/
+    const manualVotes = document.getElementById('manualVotes');
+    function renderManualVotes(){
+      manualVotes.innerHTML = '';
+      DB.positions.forEach(pos => {
+        const contenders = DB.contenders.filter(c => c.positionId === pos.id);
+        if (contenders.length === 0) return;
+        const wrap = document.createElement('div'); wrap.className = 'bg-white rounded-2xl p-4 border';
+        wrap.innerHTML = `<div class="font-semibold text-mkuBlue mb-2">${escapeHTML(pos.name)}</div>`;
+        contenders.forEach(c => {
+          const v = (DB.votes[pos.id] && DB.votes[pos.id][c.id]) || 0;
+          const row = document.createElement('div'); row.className = 'flex items-center justify-between gap-2 py-1 text-sm';
+          row.innerHTML = `
+            <div class="flex-1">
+              <div class="font-medium">${escapeHTML(c.fullName)}</div>
+              <div class="text-xs text-gray-500">${escapeHTML(c.info||'')}</div>
+            </div>
+            <div class="flex items-center gap-1">
+              <button data-pos="${pos.id}" data-cid="${c.id}" data-act="minus" class="px-2 py-1 rounded bg-gray-200">−</button>
+              <input data-pos="${pos.id}" data-cid="${c.id}" type="number" value="${v}" class="w-20 text-center border rounded-lg px-2 py-1" />
+              <button data-pos="${pos.id}" data-cid="${c.id}" data-act="plus" class="px-2 py-1 rounded bg-gray-200">＋</button>
+              <button data-pos="${pos.id}" data-cid="${c.id}" data-act="set" class="ml-2 px-3 py-1 rounded bg-mkuBlue text-white">Apply</button>
+            </div>`;
+          wrap.appendChild(row);
+        });
+        manualVotes.appendChild(wrap);
+      });
+
+      manualVotes.querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
+        const act = b.dataset.act; const posId = b.dataset.pos; const cid = b.dataset.cid;
+        DB.votes[posId] = DB.votes[posId] || {}; DB.votes[posId][cid] = DB.votes[posId][cid] || 0;
+        const input = manualVotes.querySelector(`input[data-pos="${posId}"][data-cid="${cid}"]`);
+        if (act==='minus') input.value = Math.max(0, parseInt(input.value||'0',10)-1);
+        if (act==='plus') input.value = Math.max(0, parseInt(input.value||'0',10)+1);
+        if (act==='set') { DB.votes[posId][cid] = Math.max(0, parseInt(input.value||'0',10)); save(); renderResults(); renderVoteCards(); toast('Votes updated'); }
+      }));
+    }
+
+    /*********************
+     * Settings toggle    *
+     *********************/
+    const toggleTokenMode = document.getElementById('toggleTokenMode');
+    toggleTokenMode.addEventListener('change', () => { DB.settings.requireToken = toggleTokenMode.checked; save(); renderVoteCards(); toast('Token mode ' + (DB.settings.requireToken?'ON':'OFF')); });
+
+    /*********************
+     * Data Tools         *
+     *********************/
+    document.getElementById('exportData').addEventListener('click', () => {
+      const blob = new Blob([JSON.stringify(DB, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = 'sg-awards-2025-data.json'; a.click(); URL.revokeObjectURL(url);
+    });
+
+    document.getElementById('importJSON').addEventListener('change', async (e) => {
+      const f = e.target.files[0]; if (!f) return; const text = await f.text();
+      try { DB = JSON.parse(text); save(); renderAll(); toast('Data imported'); }
+      catch { toast('Invalid JSON file', true); }
+    });
+
+    document.getElementById('resetAll').addEventListener('click', () => {
+      if (!confirm('This will erase ALL data in this browser for this app. Continue?')) return;
+      localStorage.removeItem(APP_KEY); DB = load(); renderAll(); toast('App reset');
+    });
+
+    /*********************
+     * Helpers            *
+     *********************/
+    function escapeHTML(s) { return (s||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[m])); }
+    function note(msg, tone='gray'){
+      const map = {gray:'bg-gray-50 text-gray-800', blue:'bg-blue-50 text-blue-800', yellow:'bg-yellow-50 text-yellow-800', red:'bg-red-50 text-red-700'};
+      return `<div class="p-3 ${map[tone]||map.gray} border rounded-xl text-sm">${msg}</div>`;
+    }
+    function populateSelectOptions(){
+      const nomPosition = document.getElementById('nomPosition');
+      const regPosition = document.getElementById('regPosition');
+      if (nomPosition) nomPosition.innerHTML = '';
+      if (regPosition) regPosition.innerHTML = '';
+      DB.positions.forEach(p => {
+        const o1 = document.createElement('option'); o1.value = p.id; o1.textContent = p.name; nomPosition.appendChild(o1);
+        const o2 = document.createElement('option'); o2.value = p.id; o2.textContent = p.name; regPosition.appendChild(o2);
+      });
+    }
+    function toast(msg, error=false){
+      const el = document.createElement('div');
+      el.className = `fixed bottom-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-xl shadow text-white ${error? 'bg-red-600':'bg-gray-900'}`;
+      el.textContent = msg; document.body.appendChild(el); setTimeout(()=> el.remove(), 2200);
+    }
+
+    function renderAdmin(){
+      document.getElementById('toggleTokenMode').checked = !!DB.settings.requireToken;
+      renderPositionsManager(); renderLinks(); renderNoms(); renderManualVotes();
+    }
+
+    function renderAll(){
+      populateSelectOptions(); renderContenders(); renderResults(); renderVoteCards();
+      if (!adminPanel.classList.contains('hidden')) renderAdmin();
+    }
+
+    // Seed sample data if empty
+    function seedSamplesIfEmpty(){
+      if (DB.contenders.length>0) return;
+      const findPos = (name)=> DB.positions.find(p=>p.name===name)?.id;
+      const add = (posName, fullName, info, bio='')=>{
+        const pid = findPos(posName); if (!pid) return;
+        const c = { id: id(), positionId: pid, fullName, info, bio };
+        DB.contenders.push(c); DB.votes[pid] = DB.votes[pid] || {}; DB.votes[pid][c.id] = 0;
+      }
+      add('Most Popular Student','Aisha Mwende','BBA, Year 3','Known for campus outreach and class representation.');
+      add('Most Popular Student','Brian Otieno','BSc IT, Year 2','Connects tech clubs and sports fans alike.');
+      add('Best Leadership','Zainab Hassan','BSc Nursing, Year 4','Leads community health drives.');
+      add('Best Leadership','Caleb Kamau','BEd Arts, Year 3','Organized mentorship circles.');
+      add('Academic Excellence','Faith Wanjiku','BSc Math, Year 4','Top of class, research tutor.');
+      add('Academic Excellence','Hassan Ali','BSc Statistics, Year 3','Data wiz, tutor volunteer.');
+      add('Sports Personality','Mercy Muriuki','BSc Sports Sci, Year 3','Captain, MKU Mombasa Queens.');
+      add('Sports Personality','Said Abdul','BCom, Year 2','Track & field medalist.');
+      save();
+    }
+
+    // Init
+    seedSamplesIfEmpty();
+    showTab('vote');
+    renderAll();
+  </script>
+</body>
+</html>
